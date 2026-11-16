@@ -1,0 +1,3 @@
+# Team Workflow
+
+Suggested allocation of 13 members: one protocol/coordinator; two permission and collection stewards; six language-qualified annotators arranged into independent coverage rotations (three raters per item); two modeling engineers; one evaluation engineer; one reproducibility/report lead. Roles do not replace per-item independence. First approve protocol and permission ledger, pilot guidelines, review agreement and sampling coverage, then collect. Use Git branches and reviewed changes for code/docs only; run pytest and synthetic smoke workflow before merging. Preserve restricted originals and version derived datasets. Require a second reviewer for test-set access and final reporting.

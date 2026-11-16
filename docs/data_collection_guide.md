@@ -1,0 +1,3 @@
+# Data Collection Guide
+
+No scraping or real-data imports are authorized by this repository. Recruit consenting adult volunteers through institutional procedures or review an appropriately licensed dataset. Explain research purpose, publication scope, retention and withdrawal process before consent. Record source-specific permission evidence and restrictions in the separate ledger. Verify each imported release and platform conditions, including redistribution and deletion obligations. De-identify and manually review before annotation. Balance language/source strata and retain collection logs. Do not invent labels or call synthetic examples collected data.

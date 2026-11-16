@@ -1,0 +1,3 @@
+# Literature Review
+
+NaijaSenti is relevant prior work, not a Group 4 collection. See the original paper: https://aclanthology.org/2022.lrec-1.63/ and repository https://github.com/hausanlp/NaijaSenti . It addresses sentiment resources for Hausa, Igbo, Yoruba and Nigerian Pidgin. The repository advertises CC BY 4.0; verify the actual selected artifact, attribution requirements and applicable source restrictions before use. No external dataset has been downloaded. Build a literature matrix recording language, domain, split design, license, model and metrics; avoid comparing scores from incompatible datasets.

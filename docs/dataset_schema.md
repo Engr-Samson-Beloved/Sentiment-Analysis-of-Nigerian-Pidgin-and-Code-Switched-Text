@@ -1,0 +1,3 @@
+# Dataset Schema
+
+UTF-8 CSV: text_id (unique opaque ID), text (nonempty), source_type, source_reference (opaque permission-ledger key), language_mix, sentiment and split. Labels may be blank before annotation, never before training. Split is blank, train, validation or test. Optional group_id links related examples. Separate ledger fields: source_reference, permission_status, license_or_consent, evidence_location, restrictions. Do not put personal source URLs or identifiers in released data. Annotation CSV: text_id, annotator_id, sentiment_label, language_label, notes. Unknown IDs, missing ratings and repeated raters are rejected.

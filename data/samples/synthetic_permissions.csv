@@ -1,0 +1,2 @@
+source_reference,permission_status,license_or_consent,evidence_location,restrictions
+fixture-v1,project_generated,Generated solely for infrastructure testing,scripts/make_fixture.py,Must never be reported as research data

@@ -1,0 +1,3 @@
+language_categories: [pidgin, pidgin_english, english_yoruba, english_hausa, english_only, other_mixed]
+seed: 42
+near_duplicate_threshold: 0.9
