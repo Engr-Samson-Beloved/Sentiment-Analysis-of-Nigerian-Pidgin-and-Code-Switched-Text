@@ -47,18 +47,24 @@ st.markdown(
 
 
 @st.cache_data(show_spinner=False)
-def load_data() -> pd.DataFrame | None:
-    return pd.read_csv(DATA_PATH, dtype=str, keep_default_na=False) if DATA_PATH.exists() else None
+def load_data(path: str, modified_ns: int) -> pd.DataFrame:
+    """Load processed data; the mtime argument invalidates stale Streamlit caches."""
+    del modified_ns
+    return pd.read_csv(path, dtype=str, keep_default_na=False)
 
 
 @st.cache_data(show_spinner=False)
-def load_metrics() -> dict | None:
-    return json.loads(METRICS_PATH.read_text(encoding="utf-8")) if METRICS_PATH.exists() else None
+def load_metrics(path: str, modified_ns: int) -> dict:
+    """Load metrics and refresh automatically after retraining."""
+    del modified_ns
+    return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 @st.cache_resource(show_spinner=False)
-def cached_model():
-    return load_pipeline(MODEL_PATH)
+def cached_model(path: str, modified_ns: int):
+    """Load the latest saved pipeline and invalidate after retraining."""
+    del modified_ns
+    return load_pipeline(path)
 
 
 def pilot_count() -> int:
@@ -67,8 +73,8 @@ def pilot_count() -> int:
     return len(pd.read_csv(PILOT_PATH))
 
 
-data = load_data()
-metrics = load_metrics()
+data = load_data(str(DATA_PATH), DATA_PATH.stat().st_mtime_ns) if DATA_PATH.exists() else None
+metrics = load_metrics(str(METRICS_PATH), METRICS_PATH.stat().st_mtime_ns) if METRICS_PATH.exists() else None
 
 with st.sidebar:
     st.header("Prototype status")
@@ -101,7 +107,10 @@ with overview:
 with explorer:
     st.subheader("Public benchmark explorer")
     if data is None:
-        st.warning("Benchmark data is not available yet. Run `python scripts/download_data.py` and `python scripts/prepare_data.py`.")
+        if (ROOT / "data/raw/download_manifest.json").exists():
+            st.warning("Raw benchmark download is complete. Run `python scripts/prepare_data.py`, then refresh this page.")
+        else:
+            st.warning("Benchmark data is not available yet. Run `python scripts/download_data.py` and `python scripts/prepare_data.py`.")
     else:
         filter_columns = st.columns([2, 2, 2, 3])
         language = filter_columns[0].selectbox("Language", ["All", *sorted(data.source_language.unique())])
@@ -164,7 +173,7 @@ with analyser:
             st.error("The trained model is unavailable. Run `python scripts/train_baseline.py` first.")
         else:
             try:
-                prediction = predict_sentiment(cached_model(), text)
+                prediction = predict_sentiment(cached_model(str(MODEL_PATH), MODEL_PATH.stat().st_mtime_ns), text)
                 st.success(f"Predicted sentiment: **{prediction['sentiment'].title()}**")
                 if prediction["confidence"] is not None:
                     st.metric("Calibrated confidence", f"{prediction['confidence']:.1%}")
