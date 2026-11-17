@@ -1,0 +1,100 @@
+<div id="naija-synthetic-dashboard" aria-labelledby="dashboard-title">
+  <style>
+    #naija-synthetic-dashboard { color: var(--foreground); display: grid; gap: calc(var(--font-size-base) * 1); font-family: inherit; }
+    #naija-synthetic-dashboard .dashboard-head { display: grid; gap: calc(var(--font-size-base) * .5); }
+    #naija-synthetic-dashboard .subtitle { color: var(--muted-foreground); }
+    #naija-synthetic-dashboard .flow { display: flex; flex-wrap: wrap; align-items: center; gap: calc(var(--font-size-base) * .5); }
+    #naija-synthetic-dashboard .flow-step { color: var(--foreground); background: color-mix(in srgb, var(--accent) 35%, transparent); padding: calc(var(--font-size-base) * .5) calc(var(--font-size-base) * .75); }
+    #naija-synthetic-dashboard .flow-arrow { color: var(--muted-foreground); }
+    #naija-synthetic-dashboard .section { display: grid; gap: calc(var(--font-size-base) * .5); }
+    #naija-synthetic-dashboard .bar-row { display: grid; grid-template-columns: minmax(80px, 1fr) minmax(120px, 4fr) 48px; align-items: center; gap: calc(var(--font-size-base) * .5); }
+    #naija-synthetic-dashboard .bar-track { background: var(--muted); height: calc(var(--font-size-base) * 1.25); overflow: hidden; }
+    #naija-synthetic-dashboard .bar { height: 100%; background: var(--viz-series-1, var(--blue)); transition: width 180ms ease; }
+    #naija-synthetic-dashboard .bar.secondary { background: var(--viz-series-2, var(--green)); }
+    #naija-synthetic-dashboard .bar.tertiary { background: var(--viz-series-3, var(--orange)); }
+    #naija-synthetic-dashboard .split-detail { min-height: calc(var(--font-size-base) * 3); }
+    #naija-synthetic-dashboard .compact-value { font-size: calc(var(--font-size-base) * 1.45); font-weight: 500; }
+    #naija-synthetic-dashboard .legend { display: flex; flex-wrap: wrap; gap: calc(var(--font-size-base) * .75); color: var(--muted-foreground); }
+    #naija-synthetic-dashboard .legend span { display: inline-flex; align-items: center; gap: calc(var(--font-size-base) * .25); }
+    #naija-synthetic-dashboard .swatch { width: 12px; height: 12px; background: var(--viz-series-1, var(--blue)); display: inline-block; }
+    #naija-synthetic-dashboard .swatch.secondary { background: var(--viz-series-2, var(--green)); }
+    #naija-synthetic-dashboard .swatch.tertiary { background: var(--viz-series-3, var(--orange)); }
+    @media (max-width: 480px) { #naija-synthetic-dashboard .bar-row { grid-template-columns: 78px minmax(80px, 1fr) 38px; } }
+  </style>
+
+  <div class="dashboard-head">
+    <h2 id="dashboard-title">Synthetic fixture: pipeline status</h2>
+    <p class="subtitle">Infrastructure-only data. It is not collected research data and does not represent model performance.</p>
+  </div>
+
+  <div class="flow" role="img" aria-label="Research workflow: validate data, audit permissions and privacy, collect three annotations, calculate agreement, adjudicate, then create leakage-resistant splits.">
+    <span class="flow-step">Validate</span><span class="flow-arrow" aria-hidden="true">→</span>
+    <span class="flow-step">Permission + privacy audit</span><span class="flow-arrow" aria-hidden="true">→</span>
+    <span class="flow-step">Three annotations</span><span class="flow-arrow" aria-hidden="true">→</span>
+    <span class="flow-step">Agreement + adjudication</span><span class="flow-arrow" aria-hidden="true">→</span>
+    <span class="flow-step">Grouped split</span>
+  </div>
+
+  <div class="viz-grid" aria-label="Synthetic dataset summary">
+    <div class="card viz-stat"><span class="text-muted">Items</span><span class="viz-stat-value tabular-nums">90</span><span class="text-small text-muted">synthetic English-only fixture</span></div>
+    <div class="card viz-stat"><span class="text-muted">Annotations</span><span class="viz-stat-value tabular-nums">270</span><span class="text-small text-muted">three per item</span></div>
+    <div class="card viz-stat"><span class="text-muted">Fleiss’ κ</span><span class="viz-stat-value tabular-nums">1.00</span><span class="text-small text-muted">intentional unanimity</span></div>
+  </div>
+
+  <div class="section" aria-labelledby="sentiment-title">
+    <h3 id="sentiment-title">Sentiment balance</h3>
+    <div class="legend" aria-label="Sentiment legend"><span><i class="swatch" aria-hidden="true"></i>Positive</span><span><i class="swatch secondary" aria-hidden="true"></i>Negative</span><span><i class="swatch tertiary" aria-hidden="true"></i>Neutral</span></div>
+    <div class="bar-row"><span>Positive</span><div class="bar-track" role="img" aria-label="Positive: 30 items, 33.3 percent"><div class="bar" style="width: 100%"></div></div><span class="text-end tabular-nums">30</span></div>
+    <div class="bar-row"><span>Negative</span><div class="bar-track" role="img" aria-label="Negative: 30 items, 33.3 percent"><div class="bar secondary" style="width: 100%"></div></div><span class="text-end tabular-nums">30</span></div>
+    <div class="bar-row"><span>Neutral</span><div class="bar-track" role="img" aria-label="Neutral: 30 items, 33.3 percent"><div class="bar tertiary" style="width: 100%"></div></div><span class="text-end tabular-nums">30</span></div>
+  </div>
+
+  <div class="section" aria-labelledby="split-title">
+    <h3 id="split-title">Leakage-resistant split</h3>
+    <div class="nav nav-pills" role="tablist" aria-label="Synthetic split selection">
+      <button class="nav-link active" id="split-train" role="tab" aria-controls="split-panel" aria-selected="true" type="button" data-split="train">Train</button>
+      <button class="nav-link" id="split-validation" role="tab" aria-controls="split-panel" aria-selected="false" type="button" data-split="validation">Validation</button>
+      <button class="nav-link" id="split-test" role="tab" aria-controls="split-panel" aria-selected="false" type="button" data-split="test">Test</button>
+    </div>
+    <div id="split-panel" class="card split-detail" role="tabpanel" aria-labelledby="split-train" aria-live="polite">
+      <span class="text-muted" id="split-name">Training partition</span>
+      <div class="compact-value tabular-nums" id="split-count">66 items · 22 per sentiment</div>
+      <span class="text-small text-muted" id="split-note">66 independent groups; 73.3% of fixture rows.</span>
+    </div>
+  </div>
+
+  <p class="text-small text-muted">Verified: schema, privacy and permission audits, three-rater agreement, consensus, duplicate-aware split, metric calculations, and provenance manifests. Not verified: SVM training and model figures, because required ML packages are unavailable in this environment.</p>
+
+  <script>
+    (() => {
+      const root = document.getElementById('naija-synthetic-dashboard');
+      const data = {
+        train: { label: 'Training partition', count: '66 items · 22 per sentiment', note: '66 independent groups; 73.3% of fixture rows.' },
+        validation: { label: 'Validation partition', count: '12 items · 4 per sentiment', note: '12 independent groups; 13.3% of fixture rows.' },
+        test: { label: 'Test partition', count: '12 items · 4 per sentiment', note: '12 independent groups; 13.3% of fixture rows.' }
+      };
+      const select = (name, persist = true) => {
+        const item = data[name];
+        root.querySelectorAll('[data-split]').forEach((button) => {
+          const selected = button.dataset.split === name;
+          button.classList.toggle('active', selected);
+          button.setAttribute('aria-selected', String(selected));
+        });
+        root.querySelector('#split-panel').setAttribute('aria-labelledby', `split-${name}`);
+        root.querySelector('#split-name').textContent = item.label;
+        root.querySelector('#split-count').textContent = item.count;
+        root.querySelector('#split-note').textContent = item.note;
+        if (persist && window.openai && window.openai.setWidgetState) {
+          window.openai.setWidgetState({ modelContent: { selectedSplit: name }, privateContent: { selectedSplit: name } }).catch(() => {});
+        }
+      };
+      root.querySelectorAll('[data-split]').forEach((button) => button.addEventListener('click', () => select(button.dataset.split)));
+      const saved = window.openai && window.openai.widgetState && window.openai.widgetState.privateContent;
+      if (saved && data[saved.selectedSplit]) select(saved.selectedSplit, false);
+      window.addEventListener('openai:set_globals', (event) => {
+        const state = event.detail && event.detail.globals && event.detail.globals.widgetState;
+        if (state && state.privateContent && data[state.privateContent.selectedSplit]) select(state.privateContent.selectedSplit, false);
+      });
+    })();
+  </script>
+</div>
