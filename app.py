@@ -102,7 +102,6 @@ with overview:
     columns[2].metric("Languages", f"{data.source_language.nunique()}" if data is not None else "3 planned")
     columns[3].metric("Sentiment classes", "3")
     st.markdown("**Benchmark:** `HausaNLP/NaijaSenti-Twitter` · Nigerian Pidgin primary; Hausa and Yoruba supporting datasets.")
-    st.info("This MVP establishes a reproducible benchmark pipeline. It does not claim that NaijaSenti was collected by Group 4.")
 
 with explorer:
     st.subheader("Public benchmark explorer")
