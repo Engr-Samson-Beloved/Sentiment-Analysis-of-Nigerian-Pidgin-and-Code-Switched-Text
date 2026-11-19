@@ -2,9 +2,9 @@
 
 CTE 442 research MVP · Group 4 · Yaba College of Technology
 
-This repository provides a reproducible benchmark pipeline and Streamlit dashboard for investigating whether multilingual models handle Nigerian Pidgin and English–Yoruba or English–Hausa code-switching better than classical and recurrent models, and where they fail.
+This repository provides a reproducible dataset pipeline and Streamlit dashboard for investigating whether multilingual models handle Nigerian Pidgin and English–Yoruba or English–Hausa code-switching better than classical and recurrent models, and where they fail.
 
-The MVP uses [HausaNLP/NaijaSenti-Twitter](https://huggingface.co/datasets/HausaNLP/NaijaSenti-Twitter) as a **secondary public benchmark**. NaijaSenti was not collected by Group 4. The group’s original volunteer-contributed dataset is collected separately through a consent-gated local pilot form and must never be combined misleadingly with public benchmark counts.
+The dashboard accepts a CSV supplied manually by the research team. Import is blocked until the operator confirms the team created the data, obtained consent, or has a valid licence/public-domain basis and provides a supporting reference. The optional NaijaSenti downloader remains available as one reproducible dataset source.
 
 ## What the MVP does
 
@@ -14,11 +14,11 @@ The MVP uses [HausaNLP/NaijaSenti-Twitter](https://huggingface.co/datasets/Hausa
 - Preserves every official split and removes duplicate text without moving test examples into training.
 - Trains a calibrated word-and-character TF-IDF Linear SVM on the official Nigerian Pidgin training split.
 - Reports validation and test accuracy, macro F1, per-class precision/recall, confusion matrix, runtime and model size.
-- Provides a five-tab Streamlit dashboard for research context, data exploration, results, live predictions and original pilot collection.
+- Provides a five-tab Streamlit dashboard for research context, data exploration, results, live predictions and permission-gated dataset setup.
 
 The existing annotation, Fleiss’ kappa, permission, privacy, grouped-splitting and experiment-provenance modules remain under `src/naija_sentiment/`.
 
-For the original-data research workflow, the installed CLI also provides `init-templates`, `validate`, `agreement`, `adjudicate`, `audit-permissions`, `audit-privacy`, and `split`. See `docs/annotation_guidelines.md`, `docs/data_collection_guide.md`, and `docs/research_protocol.md` before collecting volunteer data.
+For annotated research data, the installed CLI also provides `init-templates`, `validate`, `agreement`, `adjudicate`, `audit-permissions`, `audit-privacy`, and `split`. See `docs/annotation_guidelines.md`, `docs/data_collection_guide.md`, and `docs/research_protocol.md` before using any dataset.
 
 ## Installation
 
@@ -53,6 +53,12 @@ streamlit run app.py
 ```
 
 Open the local URL printed by Streamlit, normally `http://localhost:8501`.
+
+To use a team-supplied CSV, open **Dataset setup** in the dashboard. Required columns are text/tweet, sentiment/label, and split. Sentiment must be `positive`, `negative`, or `neutral`; split must be `train`, `validation`, or `test`. After import, retrain with:
+
+```sh
+python scripts/train_baseline.py --input data/processed/research_dataset.csv
+```
 
 ## Dataset download
 
@@ -93,7 +99,8 @@ If `python scripts/download_data.py` fails:
 | `data/raw/naijasenti_<language>_<split>.csv` | Standardized official split |
 | `data/raw/download_manifest.json` | Actual downloaded row counts and files |
 | `data/processed/naijasenti_combined.csv` | Clean combined benchmark with original splits |
-| `data/pilot/original_pilot_submissions.csv` | Separate consented local pilot submissions |
+| `data/processed/research_dataset.csv` | Clean active team-supplied dataset |
+| `data/manual/dataset_provenance.json` | Local permission/licence confirmation record |
 | `artifacts/svm_sentiment_pipeline.joblib` | Complete feature-and-classifier pipeline |
 | `artifacts/metrics.json` | Validation/test metrics, timing and provenance |
 | `reports/dataset_summary.json` | Cleaning and distribution report |
@@ -101,15 +108,15 @@ If `python scripts/download_data.py` fails:
 | `reports/confusion_matrix.png` | Official Nigerian Pidgin test confusion matrix |
 | `reports/test_predictions.csv` | Test labels and predictions without text |
 
-Raw, processed, pilot and model-output directories are ignored by Git except for `.gitkeep` files. Do not commit private pilot data.
+Raw, processed, manually supplied data and model-output directories are ignored by Git except for `.gitkeep` files. Do not commit restricted research data.
 
 ## Dashboard pages
 
-1. **Project overview** — question, disclosure, languages and separate benchmark/original counts.
+1. **Project overview** — question, dataset disclaimer, record count, languages and classes.
 2. **Dataset explorer** — filters, text search, anonymized examples and distribution charts.
 3. **Model results** — actual saved metrics, classification report and confusion matrix.
 4. **Live analyser** — calibrated sentiment predictions and documented limitations.
-5. **Original pilot data** — local consent-gated submission form that rejects common identifiers.
+5. **Dataset setup** — local CSV import with mandatory permission/licence confirmation and provenance record.
 
 ## Citation and licence
 
@@ -123,14 +130,14 @@ The current Hugging Face dataset card declares **CC BY-NC-SA 4.0**. Confirm the 
 
 ## Ethics and limitations
 
-- NaijaSenti is a public secondary benchmark and cannot replace the required original volunteer dataset.
-- The pilot form collects no names, usernames, email addresses, phone numbers or matric numbers; automated screening cannot detect every contextual identifier, so human privacy review remains mandatory.
+- The team must have a documented legal/ethical basis for every supplied dataset and comply with its licence, consent, privacy, attribution, and redistribution restrictions.
+- Automated cleaning cannot detect every contextual identifier, so human privacy review remains mandatory.
 - The baseline may fail on sarcasm, slang, spelling variation, mixed sentiment, domain shift and unfamiliar code-switching.
 - Confidence is a calibrated model score, not certainty or proof of correctness.
 - Nigerian Pidgin is the first implemented experiment. Hausa and Yoruba are downloaded for later multilingual and code-switching comparisons.
-- Do not upload private pilot text to hosted LLMs without explicit participant permission and institutional approval.
+- Do not upload restricted research text to hosted LLMs without explicit permission and institutional approval.
 - Keep final test results sealed from model tuning and report class/language support alongside metrics.
 
 ## Remaining research work
 
-The complete assignment still requires at least 8,000 permitted original texts, three independent annotations per item, Fleiss’ kappa and adjudication, language-mix labels, repeated-seed experiments, learning curves, fastText, trained-embedding BiLSTM, mBERT, AfroXLMR, controlled few-shot LLM benchmarking, and qualitative error/disparity analysis.
+The complete assignment still requires verified dataset provenance, three independent annotations where labels are created by the team, Fleiss’ kappa and adjudication, language-mix labels, repeated-seed experiments, learning curves, fastText, trained-embedding BiLSTM, mBERT, AfroXLMR, controlled few-shot LLM benchmarking, and qualitative error/disparity analysis.

@@ -39,10 +39,14 @@ def evaluate_split(model, frame: pd.DataFrame) -> tuple[dict, pd.DataFrame, list
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", type=Path, default=ROOT / "data/processed/naijasenti_combined.csv")
+    default_input = ROOT / "data/processed/research_dataset.csv"
+    if not default_input.exists():
+        default_input = ROOT / "data/processed/naijasenti_combined.csv"
+    parser.add_argument("--input", type=Path, default=default_input)
     parser.add_argument("--artifacts", type=Path, default=ROOT / "artifacts")
     parser.add_argument("--reports", type=Path, default=ROOT / "reports")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--language", help="Optional source_language value to train on; defaults to Nigerian Pidgin when present, otherwise all rows")
     args = parser.parse_args()
     if not args.input.exists():
         print(f"Processed dataset not found: {args.input}\nRun python scripts/prepare_data.py first.", file=sys.stderr)
@@ -50,11 +54,14 @@ def main() -> int:
     import matplotlib.pyplot as plt
     import seaborn as sns
     data = pd.read_csv(args.input, dtype=str, keep_default_na=False)
-    pcm = data.loc[data["source_language"].eq("Nigerian Pidgin")].copy()
-    partitions = {name: pcm.loc[pcm["original_split"].eq(name)].copy() for name in ("train", "validation", "test")}
+    selected_language = args.language
+    if selected_language is None and data["source_language"].eq("Nigerian Pidgin").any():
+        selected_language = "Nigerian Pidgin"
+    selected = data.loc[data["source_language"].eq(selected_language)].copy() if selected_language else data.copy()
+    partitions = {name: selected.loc[selected["original_split"].eq(name)].copy() for name in ("train", "validation", "test")}
     if any(part.empty for part in partitions.values()):
         sizes = {name: len(part) for name, part in partitions.items()}
-        raise ValueError(f"Nigerian Pidgin official splits are incomplete: {sizes}")
+        raise ValueError(f"Selected dataset must contain non-empty train, validation, and test splits: {sizes}")
     model = build_svm_pipeline(random_seed=args.seed, calibrated=True)
     started = time.perf_counter()
     model.fit(partitions["train"]["text"], partitions["train"]["sentiment"])
@@ -68,8 +75,8 @@ def main() -> int:
     metrics = {
         "schema_version": 1,
         "model": "word+character TF-IDF with calibrated LinearSVC",
-        "primary_language": "Nigerian Pidgin",
-        "source_dataset": "HausaNLP/NaijaSenti-Twitter",
+        "primary_language": selected_language or "All supplied languages",
+        "source_dataset": ", ".join(sorted(selected["source_dataset"].astype(str).unique())),
         "random_seed": args.seed,
         "number_of_training_records": len(partitions["train"]),
         "training_seconds": training_seconds,

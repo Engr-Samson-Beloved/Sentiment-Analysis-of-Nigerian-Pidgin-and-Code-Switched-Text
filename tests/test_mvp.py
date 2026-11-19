@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from naija_sentiment.benchmark import build_svm_pipeline, clean_benchmark_text, prepare_frames, standardize_hf_split
-from naija_sentiment.pilot import save_pilot_submission, validate_pilot_text
+from naija_sentiment.manual_data import import_manual_dataset, standardize_manual_frame
 from naija_sentiment.prediction import predict_sentiment
 from scripts.download_data import parquet_files_by_split
 
@@ -85,13 +85,25 @@ def test_svm_pipeline_and_probability_prediction():
     assert pytest.approx(sum(result["probabilities"].values()), abs=1e-6) == 1
 
 
-def test_pilot_submission_requires_consent_and_blocks_identifiers(tmp_path: Path):
+def test_manual_dataset_import_requires_permission_confirmation(tmp_path: Path):
+    source = tmp_path / "source.csv"
+    pd.DataFrame(
+        {
+            "tweet": ["Service no good", "This app make sense", "Meeting starts noon"],
+            "label": ["negative", "positive", "neutral"],
+            "split": ["train", "validation", "test"],
+            "language": ["Nigerian Pidgin"] * 3,
+        }
+    ).to_csv(source, index=False)
     with pytest.raises(ValueError):
-        validate_pilot_text("Call me on +234 801 234 5678")
-    destination = tmp_path / "pilot.csv"
-    with pytest.raises(ValueError):
-        save_pilot_submission(destination, text="Service no good", language_mix="Nigerian Pidgin", topic="telecoms", consent_confirmed=False, sentiment_suggestion="negative")
-    identifier = save_pilot_submission(destination, text="Service no good", language_mix="Nigerian Pidgin", topic="telecoms", consent_confirmed=True, sentiment_suggestion="negative")
-    saved = pd.read_csv(destination)
-    assert saved.submission_id.item() == identifier
-    assert saved.consent_confirmed.item()
+        import_manual_dataset(source, dataset_name="Team data", permission_basis="Team-created", licence_or_reference="Internal record", confirmed=False, output_path=tmp_path/"out.csv", provenance_path=tmp_path/"provenance.json", report_path=tmp_path/"report.json")
+    result = import_manual_dataset(source, dataset_name="Team data", permission_basis="Team-created", licence_or_reference="Internal record", confirmed=True, output_path=tmp_path/"out.csv", provenance_path=tmp_path/"provenance.json", report_path=tmp_path/"report.json")
+    saved = pd.read_csv(tmp_path/"out.csv")
+    assert len(saved) == 3
+    assert result["provenance"]["confirmed_by_operator"] is True
+
+
+def test_manual_dataset_rejects_numeric_labels():
+    frame = pd.DataFrame({"text": ["sample"], "sentiment": [0], "split": ["train"]})
+    with pytest.raises(ValueError, match="Numeric sentiment labels"):
+        standardize_manual_frame(frame, "Team data")

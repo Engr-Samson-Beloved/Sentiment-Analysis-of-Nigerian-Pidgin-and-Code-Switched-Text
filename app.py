@@ -14,15 +14,17 @@ import streamlit as st
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from naija_sentiment.pilot import save_pilot_submission
+from naija_sentiment.manual_data import import_manual_dataset
 from naija_sentiment.prediction import load_pipeline, predict_sentiment
 
-DATA_PATH = ROOT / "data/processed/naijasenti_combined.csv"
+BENCHMARK_DATA_PATH = ROOT / "data/processed/naijasenti_combined.csv"
+MANUAL_DATA_PATH = ROOT / "data/processed/research_dataset.csv"
+MANUAL_PROVENANCE_PATH = ROOT / "data/manual/dataset_provenance.json"
+MANUAL_REPORT_PATH = ROOT / "reports/manual_dataset_summary.json"
 MODEL_PATH = ROOT / "artifacts/svm_sentiment_pipeline.joblib"
 METRICS_PATH = ROOT / "artifacts/metrics.json"
 REPORT_PATH = ROOT / "reports/classification_report.csv"
 CONFUSION_PATH = ROOT / "reports/confusion_matrix.png"
-PILOT_PATH = ROOT / "data/pilot/original_pilot_submissions.csv"
 
 st.set_page_config(page_title="NaijaSentiment Research MVP", page_icon="🇳🇬", layout="wide")
 st.markdown(
@@ -67,49 +69,45 @@ def cached_model(path: str, modified_ns: int):
     return load_pipeline(path)
 
 
-def pilot_count() -> int:
-    if not PILOT_PATH.exists():
-        return 0
-    return len(pd.read_csv(PILOT_PATH))
-
-
+DATA_PATH = MANUAL_DATA_PATH if MANUAL_DATA_PATH.exists() else BENCHMARK_DATA_PATH
 data = load_data(str(DATA_PATH), DATA_PATH.stat().st_mtime_ns) if DATA_PATH.exists() else None
 metrics = load_metrics(str(METRICS_PATH), METRICS_PATH.stat().st_mtime_ns) if METRICS_PATH.exists() else None
+using_manual_data = DATA_PATH == MANUAL_DATA_PATH
 
 with st.sidebar:
     st.header("Prototype status")
     st.success("Dashboard ready")
-    st.write("Benchmark data", "✅ Ready" if data is not None else "⏳ Run data scripts")
+    st.write("Research dataset", "✅ Ready" if data is not None else "⏳ Import a CSV")
     st.write("SVM model", "✅ Ready" if MODEL_PATH.exists() else "⏳ Run training")
-    st.write("Original pilot submissions", f"**{pilot_count()}**")
-    st.caption("Public benchmark and original submissions are counted separately.")
+    st.caption("Active source: team-supplied CSV" if using_manual_data else "Active source: prepared local dataset")
 
-overview, explorer, results_tab, analyser, pilot = st.tabs(
-    ["Project overview", "Dataset explorer", "Model results", "Live analyser", "Original pilot data"]
+overview, explorer, results_tab, analyser, dataset_setup = st.tabs(
+    ["Project overview", "Dataset explorer", "Model results", "Live analyser", "Dataset setup"]
 )
 
 with overview:
     st.subheader("Research question")
     st.write("Do multilingual transformer models handle Nigerian Pidgin and English–Yoruba or English–Hausa code-switching better than classical and recurrent models, and where do they fail?")
     st.markdown(
-        '<div class="notice">“This prototype uses the public NaijaSenti dataset to establish the initial experimental pipeline. The original volunteer-contributed dataset required for the complete study is being collected separately and must not be confused with the public benchmark.”</div>',
+        '<div class="notice"><strong>Dataset-use disclaimer:</strong> Only use data that the research team created, received with consent, or is permitted by a valid licence. The team must remove personal identifiers, respect all restrictions, and provide the correct citation. Loading a dataset into this application does not transfer ownership or prove permission.</div>',
         unsafe_allow_html=True,
     )
     st.write("")
     columns = st.columns(4)
-    columns[0].metric("Public benchmark records", f"{len(data):,}" if data is not None else "Not downloaded")
-    columns[1].metric("Original submissions", f"{pilot_count():,}")
-    columns[2].metric("Languages", f"{data.source_language.nunique()}" if data is not None else "3 planned")
-    columns[3].metric("Sentiment classes", "3")
-    st.markdown("**Benchmark:** `HausaNLP/NaijaSenti-Twitter` · Nigerian Pidgin primary; Hausa and Yoruba supporting datasets.")
+    columns[0].metric("Dataset records", f"{len(data):,}" if data is not None else "Not loaded")
+    columns[1].metric("Languages", f"{data.source_language.nunique()}" if data is not None else "—")
+    columns[2].metric("Sentiment classes", f"{data.sentiment.nunique()}" if data is not None else "—")
+    columns[3].metric("Official splits", f"{data.original_split.nunique()}" if data is not None else "—")
+    if data is not None:
+        st.markdown("**Active dataset source:** " + ", ".join(sorted(data.source_dataset.astype(str).unique())))
 
 with explorer:
-    st.subheader("Public benchmark explorer")
+    st.subheader("Research dataset explorer")
     if data is None:
         if (ROOT / "data/raw/download_manifest.json").exists():
-            st.warning("Raw benchmark download is complete. Run `python scripts/prepare_data.py`, then refresh this page.")
+            st.warning("Raw data is available but not prepared. Run `python scripts/prepare_data.py`, or import the team CSV in Dataset setup.")
         else:
-            st.warning("Benchmark data is not available yet. Run `python scripts/download_data.py` and `python scripts/prepare_data.py`.")
+            st.warning("No research dataset is active. Import a permitted CSV in Dataset setup.")
     else:
         filter_columns = st.columns([2, 2, 2, 3])
         language = filter_columns[0].selectbox("Language", ["All", *sorted(data.source_language.unique())])
@@ -121,7 +119,7 @@ with explorer:
         if sentiment != "All": filtered = filtered.loc[filtered.sentiment.eq(sentiment)]
         if split != "All": filtered = filtered.loc[filtered.original_split.eq(split)]
         if query: filtered = filtered.loc[filtered.text.str.contains(query, case=False, na=False, regex=False)]
-        st.caption(f"Showing {len(filtered):,} of {len(data):,} public benchmark rows. Identifiers are normalized during preparation.")
+        st.caption(f"Showing {len(filtered):,} of {len(data):,} locally prepared rows. Common identifiers are normalized during preparation.")
         st.dataframe(filtered[["text_id", "text", "sentiment", "source_language", "original_split"]].head(500), width="stretch", hide_index=True)
         left, right = st.columns(2)
         with left:
@@ -136,7 +134,7 @@ with explorer:
             ax.set(xlabel="Records", ylabel="Language"); fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
 with results_tab:
-    st.subheader("Nigerian Pidgin SVM baseline")
+    st.subheader("Saved SVM baseline")
     if metrics is None:
         st.warning("No verified model metrics exist yet. Run `python scripts/train_baseline.py` after preparing the official dataset.")
     else:
@@ -147,13 +145,13 @@ with results_tab:
         row[2].metric("Training time", f"{metrics['training_seconds']:.1f}s")
         row[3].metric("Test inference", f"{test['inference_seconds']:.2f}s")
         row[4].metric("Model size", f"{metrics['model_size_megabytes']:.1f} MB")
-        st.caption(f"Trained on {metrics['number_of_training_records']:,} official Nigerian Pidgin training records. Test data was not used for training.")
+        st.caption(f"Trained on {metrics['number_of_training_records']:,} training records from {metrics['source_dataset']}. Test data was not used for training.")
         st.markdown("**Accuracy** is the proportion of correct predictions. **Macro F1** gives equal weight to each sentiment class. **Precision** asks how often a predicted class is correct; **recall** asks how many true examples of that class were found.")
         left, right = st.columns([1.15, 1])
         with left:
             if REPORT_PATH.exists(): st.dataframe(pd.read_csv(REPORT_PATH), width="stretch", hide_index=True)
         with right:
-            if CONFUSION_PATH.exists(): st.image(str(CONFUSION_PATH), caption="Official Nigerian Pidgin test split")
+            if CONFUSION_PATH.exists(): st.image(str(CONFUSION_PATH), caption="Saved model test split")
 
 with analyser:
     st.subheader("Live sentiment analyser")
@@ -182,21 +180,36 @@ with analyser:
                 st.error(str(exc))
     st.warning("This baseline may struggle with sarcasm, slang, spelling variation, mixed sentiment and unfamiliar code-switching. It does not reliably identify every language mixture.")
 
-with pilot:
-    st.subheader("Original volunteer-contributed pilot data")
-    st.write("Contribute text only. Do not include names, phone numbers, email addresses, usernames, matric numbers, or other personal identifiers.")
-    st.metric("Original submissions stored locally", pilot_count())
-    with st.form("pilot_submission", clear_on_submit=True):
-        pilot_text = st.text_area("Text", help="Enter a Nigerian-language or code-switched statement without personal identifiers.")
-        language_mix = st.selectbox("Language mix", ["Nigerian Pidgin", "English–Pidgin", "English–Yoruba", "English–Hausa", "Other code-switching"])
-        topic = st.text_input("Topic", placeholder="e.g. telecoms, transport, education")
-        suggestion = st.selectbox("Optional sentiment suggestion", ["No suggestion", "positive", "negative", "neutral"])
-        consent = st.checkbox("I voluntarily contribute this text for academic research and confirm it contains no personal identifiers.")
-        submitted = st.form_submit_button("Save pilot submission", type="primary")
-    if submitted:
-        try:
-            submission_id = save_pilot_submission(PILOT_PATH, text=pilot_text, language_mix=language_mix, topic=topic, consent_confirmed=consent, sentiment_suggestion=suggestion)
-            st.success(f"Submission saved locally. Reference: {submission_id[:8]}")
-            st.cache_data.clear()
-        except ValueError as exc:
-            st.error(str(exc))
+with dataset_setup:
+    st.subheader("Use a team-supplied dataset")
+    st.markdown(
+        '<div class="notice"><strong>Required confirmation:</strong> Upload only a CSV the team is authorised to use. You remain responsible for consent or licensing, privacy review, restrictions, attribution, and secure storage.</div>',
+        unsafe_allow_html=True,
+    )
+    st.write("Required columns: `text` or `tweet`; `sentiment` or `label`; and `split` with train, validation, or test. Optional language column: `source_language`, `language`, or `language_mix`.")
+    with st.form("manual_dataset_import", clear_on_submit=False):
+        uploaded = st.file_uploader("Dataset CSV", type=["csv"])
+        dataset_name = st.text_input("Dataset name or source", placeholder="e.g. Group 4 manually prepared dataset")
+        permission_basis = st.selectbox("Permission basis", ["Select one", "Team-created", "Consent obtained", "Licensed dataset", "Public-domain dataset"])
+        reference = st.text_input("Licence, consent record, source, or citation reference")
+        confirmation = st.checkbox("I confirm that the team is authorised to use this dataset and will comply with its privacy, citation, and licence requirements.")
+        imported = st.form_submit_button("Validate and use dataset", type="primary")
+    if imported:
+        if uploaded is None:
+            st.error("Choose a CSV file")
+        else:
+            try:
+                result = import_manual_dataset(
+                    uploaded,
+                    dataset_name=dataset_name,
+                    permission_basis=permission_basis,
+                    licence_or_reference=reference,
+                    confirmed=confirmation,
+                    output_path=MANUAL_DATA_PATH,
+                    provenance_path=MANUAL_PROVENANCE_PATH,
+                    report_path=MANUAL_REPORT_PATH,
+                )
+                st.success(f"Dataset accepted: {result['provenance']['rows_retained']:,} cleaned rows stored locally.")
+                st.cache_data.clear(); st.cache_resource.clear(); st.rerun()
+            except (ValueError, pd.errors.ParserError) as exc:
+                st.error(str(exc))

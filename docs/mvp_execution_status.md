@@ -37,13 +37,13 @@ The baseline predicted no neutral test items correctly. The deduplicated trainin
 - Streamlit's application test runner executed all five tabs with no application exceptions.
 - The processed dataset, model pipeline, metrics JSON, classification report, test predictions, and 1260×900 confusion-matrix image exist.
 - Three live sample predictions executed with calibrated probabilities.
-- Pilot storage was tested against a temporary CSV; no synthetic submission was added to the real pilot count.
+- Permission-gated team CSV import was tested against temporary files; no synthetic data was added to the active research dataset.
 
 ## Next academic priorities
 
 1. Present the MVP as a benchmark pipeline, not as a successful final classifier.
 2. Explain the neutral-class scarcity and zero neutral recall in the presentation.
-3. Collect the original consented pilot dataset separately and keep its count distinct from NaijaSenti.
-4. Complete three-independent-annotator labeling, Fleiss' kappa, and adjudication for original data.
+3. Select the team-supplied dataset, preserve its permission/licence record, and document its scope and limitations.
+4. Complete three-independent-annotator labeling, Fleiss' kappa, and adjudication where the team creates labels.
 5. Add class-aware experiments without modifying the official test split, then implement fastText, BiLSTM, mBERT, AfroXLMR, and controlled few-shot LLM comparisons.
 6. Add repeated seeds, learning curves, confidence intervals, and analysis of sarcasm, slang, spelling variation, and language mix.
